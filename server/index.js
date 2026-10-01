@@ -25,7 +25,7 @@ app.get('/api/info', (req, res) => {
       { id: 'pink_goggles', name: 'Pink Goggles', color: '#ff2d78', default: true },
       { id: 'blue_shadow',  name: 'Blue Shadow',  color: '#00d4ff', default: false },
       { id: 'travel_buddy', name: 'Travel Buddy', color: '#00ff88', default: false },
-      { id: 'neon_hero',    name: 'Neon Hero',    color: '#ff6a00', default: false }
+      { id: 'dlijam-hero',    name: 'dliworld',    color: '#ff6a00', default: false }
     ]
   });
 });
