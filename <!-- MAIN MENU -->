@@ -1,0 +1,82 @@
+<!-- LOGIN SCREEN -->
+
+<section id="auth" style="
+  position:absolute;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:#050510;
+  padding:25px;
+  z-index:20;
+">
+
+  <div style="
+    color:#00eaff;
+    font-size:16px;
+    font-weight:bold;
+    letter-spacing:7px;
+    margin-bottom:10px;
+  ">
+    DLICOM
+  </div>
+
+  <h1 style="
+    color:white;
+    font-size:38px;
+    letter-spacing:6px;
+    margin-bottom:25px;
+  ">
+    LOGIN
+  </h1>
+
+  <div style="width:100%;max-width:400px;">
+
+    <input
+      id="email"
+      type="text"
+      placeholder="Email or Username"
+      style="
+        width:100%;
+        padding:17px;
+        margin-bottom:12px;
+        border-radius:12px;
+        border:1px solid #30305c;
+        background:#111125;
+        color:white;
+        font-size:15px;
+      "
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      style="
+        width:100%;
+        padding:17px;
+        margin-bottom:16px;
+        border-radius:12px;
+        border:1px solid #30305c;
+        background:#111125;
+        color:white;
+        font-size:15px;
+      "
+    >
+
+    <button class="menu-btn play" onclick="loginAccount()">
+      🔐 LOGIN
+    </button>
+
+    <button class="menu-btn" onclick="showRegister()">
+      📝 CREATE ACCOUNT
+    </button>
+
+    <button class="menu-btn" onclick="closeAuth()">
+      ← BACK
+    </button>
+
+  </div>
+
+</section>
