@@ -1,24 +1,16 @@
 {
-  "name": "neonworld",
+  "name": "dli-world",
   "version": "1.0.0",
-  "main": "server/index.js",
+  "private": true,
   "scripts": {
     "start": "node server/index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "socket.io": "^4.6.1",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
-    "cookie-parser": "^1.4.6",
-    "uuid": "^9.0.0",
-    "compression": "^1.7.4",
-    "morgan": "^1.10.0",
-    "pg": "^8.11.3",
-    "express-validator": "^7.0.1"
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "bcryptjs": "^3.0.2",
+    "pg": "^8.16.3",
+    "express-session": "^1.18.2",
+    "connect-pg-simple": "^10.0.0"
   }
 }
