@@ -1,23 +1,518 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>🌆 Neon World</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🌆 Dli World</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#060612;color:#fff;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;}
-h1{font-size:2.5rem;background:linear-gradient(135deg,#ff2d78,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-p{color:#00d4ff;margin-top:16px;font-size:1rem;}
-.dot{animation:blink 1s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+:root{--pink:#ff2d78;--blue:#00d4ff;--purple:#bf00ff;--green:#00ff88;--yellow:#ffe600;}
+body{background:#060612;color:#fff;font-family:'Courier New',monospace;overflow:hidden;touch-action:none;}
+#canvas{position:fixed;inset:0;width:100%;height:100%;}
+
+/* Loading */
+#loading{position:fixed;inset:0;background:#060612;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.5s;}
+#loading.hide{opacity:0;pointer-events:none;}
+.logo{font-size:clamp(2rem,8vw,4rem);font-weight:900;letter-spacing:6px;background:linear-gradient(135deg,var(--pink),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:pulse 2s infinite;}
+.tagline{color:var(--blue);font-size:0.8rem;letter-spacing:4px;margin:8px 0 40px;}
+.bar-wrap{width:min(300px,80vw);height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;margin-bottom:12px;}
+.bar{height:100%;width:0%;background:linear-gradient(90deg,var(--pink),var(--blue));transition:width 0.3s;box-shadow:0 0 10px var(--blue);}
+.status{font-size:0.7rem;color:rgba(255,255,255,0.4);letter-spacing:2px;}
+@keyframes pulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.4);}}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:100;}
+#hud>*{pointer-events:auto;}
+#hud-top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;}
+.hud-card{background:rgba(10,10,30,0.85);border:1px solid rgba(0,212,255,0.3);border-radius:8px;padding:8px 12px;backdrop-filter:blur(8px);}
+.game-title{font-size:0.9rem;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,var(--pink),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.coins{color:var(--yellow);font-size:0.85rem;}
+.score{color:var(--pink);font-size:0.85rem;}
+
+/* Character select */
+#char-select{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:200;}
+.char-btn{width:56px;height:56px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(10,10,30,0.8);cursor:pointer;font-size:1.4rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.char-btn.active{border-color:var(--blue);box-shadow:0 0 15px var(--blue);}
+.char-btn:active{transform:scale(0.9);}
+
+/* Mobile controls */
+#controls{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;z-index:200;}
+#joystick-base{width:100px;height:100px;border-radius:50%;background:rgba(0,212,255,0.08);border:1.5px solid rgba(0,212,255,0.3);position:relative;touch-action:none;}
+#joystick-knob{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,0.9),rgba(0,212,255,0.4));border:1px solid var(--blue);box-shadow:0 0 12px var(--blue);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+#action-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;}
+.act-btn{width:52px;height:52px;border-radius:50%;border:1.5px solid rgba(255,45,120,0.4);background:rgba(255,45,120,0.1);color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.act-btn:active{background:rgba(255,45,120,0.35);box-shadow:0 0 15px var(--pink);transform:scale(0.9);}
+
+/* Chat */
+#chat{position:fixed;bottom:140px;left:12px;width:220px;z-index:150;}
+#chat-msgs{height:120px;overflow-y:auto;background:rgba(6,6,18,0.7);border:1px solid rgba(0,212,255,0.2);border-radius:6px 6px 0 0;padding:6px;font-size:0.7rem;}
+.chat-line{margin-bottom:3px;line-height:1.3;}
+.chat-user{color:var(--blue);font-weight:700;}
+#chat-input-row{display:flex;}
+#chat-inp{flex:1;background:rgba(10,10,30,0.9);border:1px solid rgba(0,212,255,0.3);border-top:none;color:#fff;font-size:0.75rem;padding:6px;outline:none;border-radius:0 0 0 6px;}
+#chat-send{background:var(--blue);border:none;color:#000;padding:6px 10px;cursor:pointer;border-radius:0 0 6px 0;font-weight:700;}
+
+/* Announce */
+#announce{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(191,0,255,0.2);border:1px solid var(--purple);border-radius:8px;padding:10px 36px 10px 14px;font-size:0.82rem;max-width:90vw;display:none;z-index:300;}
+#ann-close{position:absolute;right:10px;top:6px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.1rem;cursor:pointer;}
 </style>
 </head>
 <body>
-<div>
-<h1>🌆 NEON WORLD</h1>
-<p>Server is running<span class="dot">...</span></p>
-<p style="margin-top:8px;color:#00ff88;font-size:0.8rem;">✅ Online</p>
+
+<div id="loading">
+  <div class="logo">DLI WORLD</div>
+  <div class="tagline">Open World · Multiplayer · Neon</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+  <div class="status" id="status">Starting...</div>
 </div>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud" style="display:none">
+  <div id="hud-top">
+    <div class="hud-card"><div class="game-title">🌆 DLI WORLD</div></div>
+    <div class="hud-card">
+      <div class="coins">◈ <span id="coins">0</span></div>
+      <div class="score">✦ <span id="score">0</span></div>
+    </div>
+  </div>
+
+  <div id="announce"><span id="ann-text"></span><button id="ann-close" onclick="document.getElementById('announce').style.display='none'">×</button></div>
+
+  <div id="char-select">
+    <button class="char-btn active" onclick="selectChar(0)" title="Pink Goggles">🟣</button>
+    <button class="char-btn" onclick="selectChar(1)" title="Blue Shadow">🔵</button>
+    <button class="char-btn" onclick="selectChar(2)" title="Travel Buddy">🟢</button>
+    <button class="char-btn" onclick="selectChar(3)" title="Neon Hero">🟠</button>
+  </div>
+
+  <div id="chat">
+    <div id="chat-msgs"></div>
+    <div id="chat-input-row">
+      <input id="chat-inp" placeholder="Message..." maxlength="100"/>
+      <button id="chat-send" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+    <div id="action-btns">
+      <button class="act-btn" id="btn-jump">↑</button>
+      <button class="act-btn" id="btn-run">⚡</button>
+      <button class="act-btn" id="btn-interact">E</button>
+      <button class="act-btn" id="btn-cam">📷</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ═══════════════════════════════════
+// DLI WORLD — MAIN GAME
+// ═══════════════════════════════════
+
+const CHARS = [
+  {name:'Pink Goggles', color:0xff2d78, glow:'#ff2d78'},
+  {name:'Blue Shadow',  color:0x00d4ff, glow:'#00d4ff'},
+  {name:'Travel Buddy', color:0x00ff88, glow:'#00ff88'},
+  {name:'Neon Hero',    color:0xff6a00, glow:'#ff6a00'}
+];
+
+let scene, camera, renderer, player, clock;
+let socket, currentChar = 0;
+let coins = 0, score = 0;
+let joyX = 0, joyY = 0, isJumping = false, velY = 0;
+const others = new Map();
+
+// ── Loading ──────────────────────────────
+const bar = document.getElementById('bar');
+const statusEl = document.getElementById('status');
+function setLoad(pct, msg){ bar.style.width=pct+'%'; statusEl.textContent=msg; }
+
+async function boot(){
+  setLoad(10,'Connecting...');
+  try{
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    if(!d.success) throw new Error('offline');
+  } catch(e){
+    statusEl.textContent='⚠️ Cannot reach server. Retrying...';
+    setTimeout(boot,3000); return;
+  }
+
+  setLoad(25,'Building world...');
+  await sleep(300);
+  initThree();
+
+  setLoad(50,'Placing neon city...');
+  buildWorld();
+
+  setLoad(70,'Spawning character...');
+  spawnPlayer(currentChar);
+
+  setLoad(85,'Connecting multiplayer...');
+  initSocket();
+
+  setLoad(95,'Wiring controls...');
+  initControls();
+
+  setLoad(100,'Welcome to Dli World!');
+  await sleep(500);
+
+  document.getElementById('loading').classList.add('hide');
+  document.getElementById('hud').style.display='block';
+  renderer.setAnimationLoop(gameLoop);
+  showAnnounce('🌆 Welcome to Dli World! Explore the neon city!');
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+// ── Three.js ─────────────────────────────
+function initThree(){
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x060612);
+  scene.fog = new THREE.FogExp2(0x0a0a22, 0.018);
+
+  camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 800);
+  camera.position.set(0,8,16);
+
+  renderer = new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:false});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.shadowMap.enabled = true;
+
+  clock = new THREE.Clock();
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x111133,0.5));
+  const sun = new THREE.DirectionalLight(0xffffff,0.8);
+  sun.position.set(100,200,100);
+  sun.castShadow=true;
+  scene.add(sun);
+
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+}
+
+// ── World ────────────────────────────────
+function buildWorld(){
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(600,600),
+    new THREE.MeshLambertMaterial({color:0x080818})
+  );
+  ground.rotation.x=-Math.PI/2;
+  ground.receiveShadow=true;
+  scene.add(ground);
+
+  // Roads
+  addRoad(0,0,400,12,false);
+  addRoad(0,0,400,12,true);
+
+  // Buildings
+  const bldgs=[
+    [30,30,16,14,90,0xff2d78],[−40,20,14,12,110,0x00d4ff],
+    [60,−30,18,16,75,0xbf00ff],[−60,−40,20,18,130,0x00ff88],
+    [20,−60,12,12,60,0xffe600],[−20,60,14,14,85,0xff6a00],
+    [80,50,16,12,95,0x00d4ff],[−80,40,14,16,70,0xff2d78],
+  ];
+  bldgs.forEach(b=>addBuilding(...b));
+
+  // Street lamps
+  for(let i=−180;i<=180;i+=30){
+    addLamp(9,i,0x00d4ff);
+    addLamp(−9,i,0xff2d78);
+  }
+
+  // Trees
+  for(let i=0;i<20;i++){
+    addTree(200+Math.random()*120,−100+Math.random()*200);
+  }
+
+  // Water
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(200,150),
+    new THREE.MeshLambertMaterial({color:0x001a33,emissive:0x003366,emissiveIntensity:0.4,transparent:true,opacity:0.8})
+  );
+  water.rotation.x=−Math.PI/2;
+  water.position.set(0,−0.5,220);
+  scene.add(water);
+}
+
+function addRoad(x,z,len,w,horiz){
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(horiz?len:w, horiz?w:len),
+    new THREE.MeshLambertMaterial({color:0x080810})
+  );
+  m.rotation.x=−Math.PI/2;
+  m.position.set(x,0.01,z);
+  scene.add(m);
+}
+
+function addBuilding(x,z,w,d,h,color){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:0x0a0a1e}));
+  body.position.y=h/2; body.castShadow=true;
+  g.add(body);
+  const rim=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,0.3,d+0.3),new THREE.MeshLambertMaterial({color,emissive:color,emissiveIntensity:1.2}));
+  rim.position.y=h+0.15;
+  g.add(rim);
+  const light=new THREE.PointLight(color,2.5,25);
+  light.position.set(0,h*0.6,d/2+2);
+  g.add(light);
+  g.position.set(x,0,z);
+  scene.add(g);
+}
+
+function addLamp(x,z,color){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,7,6),new THREE.MeshLambertMaterial({color:0x111122}));
+  pole.position.y=3.5; g.add(pole);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,6),new THREE.MeshLambertMaterial({color,emissive:color,emissiveIntensity:1.2}));
+  head.position.y=7.2; g.add(head);
+  const light=new THREE.PointLight(color,1.8,18);
+  light.position.y=7;
+  g.add(light);
+  g.position.set(x,0,z);
+  scene.add(g);
+}
+
+function addTree(x,z){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.5,4,6),new THREE.MeshLambertMaterial({color:0x1a0e05}));
+  trunk.position.y=2; g.add(trunk);
+  [5,4,3].forEach((r,i)=>{
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(r,4,7),new THREE.MeshLambertMaterial({color:0x0d2210}));
+    cone.position.y=4+i*3; g.add(cone);
+  });
+  g.position.set(x,0,z);
+  scene.add(g);
+}
+
+// ── Player ───────────────────────────────
+function spawnPlayer(charIdx){
+  if(player) scene.remove(player);
+  const c=CHARS[charIdx];
+  const g=new THREE.Group();
+
+  // Body
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.8,0.8),new THREE.MeshLambertMaterial({color:c.color,emissive:c.color,emissiveIntensity:0.3}));
+  body.position.y=0.9; body.castShadow=true;
+  g.add(body);
+
+  // Head
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.55,8,8),new THREE.MeshLambertMaterial({color:c.color,emissive:c.color,emissiveIntensity:0.5}));
+  head.position.y=2.1; head.castShadow=true;
+  g.add(head);
+
+  // Eyes
+  [−0.18,0.18].forEach(ex=>{
+    const eye=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.1),new THREE.MeshLambertMaterial({color:0x000000}));
+    eye.position.set(ex,2.15,0.5);
+    g.add(eye);
+  });
+
+  // Glow
+  const glow=new THREE.PointLight(c.color,2,6);
+  glow.position.y=1;
+  g.add(glow);
+
+  g.position.set(0,0,0);
+  player=g;
+  scene.add(player);
+  camera.position.set(0,8,16);
+}
+
+function selectChar(idx){
+  currentChar=idx;
+  document.querySelectorAll('.char-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  spawnPlayer(idx);
+}
+
+// ── Game Loop ────────────────────────────
+let camYaw=0, netTimer=0;
+const keys={};
+
+function gameLoop(){
+  const dt=clock.getDelta();
+
+  // Movement
+  let mx=joyX, mz=joyY;
+  if(keys['ArrowUp']||keys['w']) mz=−1;
+  if(keys['ArrowDown']||keys['s']) mz=1;
+  if(keys['ArrowLeft']||keys['a']) mx=−1;
+  if(keys['ArrowRight']||keys['d']) mx=1;
+
+  const speed = keys['Shift']?10:5;
+  const rx = mx*Math.cos(camYaw)−mz*Math.sin(camYaw);
+  const rz = mx*Math.sin(camYaw)+mz*Math.cos(camYaw);
+
+  if(player){
+    player.position.x+=rx*speed*dt;
+    player.position.z+=rz*speed*dt;
+    player.position.x=Math.max(−280,Math.min(280,player.position.x));
+    player.position.z=Math.max(−280,Math.min(280,player.position.z));
+
+    // Jump/gravity
+    if(!isJumping && velY===0){
+      // on ground
+    } else {
+      velY−=18*dt;
+      player.position.y+=velY*dt;
+      if(player.position.y<=0){player.position.y=0;velY=0;isJumping=false;}
+    }
+
+    // Face direction
+    if(Math.abs(rx)>0.1||Math.abs(rz)>0.1){
+      player.rotation.y=Math.atan2(rx,rz);
+    }
+
+    // Collect coins passively
+    netTimer+=dt;
+    if(netTimer>5){netTimer=0;coins+=2;score+=5;updateHUD();}
+
+    // Camera follow
+    const tx=player.position.x+Math.sin(camYaw)*14;
+    const tz=player.position.z+Math.cos(camYaw)*14;
+    camera.position.x+=(tx−camera.position.x)*8*dt;
+    camera.position.y+=(player.position.y+8−camera.position.y)*8*dt;
+    camera.position.z+=(tz−camera.position.z)*8*dt;
+    camera.lookAt(player.position.x,player.position.y+1.5,player.position.z);
+  }
+
+  // Day/night cycle
+  const t=Date.now()*0.0001;
+  const brightness=0.5+0.5*Math.sin(t);
+  scene.background.setRGB(0.02*brightness,0.02*brightness,0.06+0.04*brightness);
+
+  renderer.render(scene,camera);
+}
+
+function updateHUD(){
+  document.getElementById('coins').textContent=coins;
+  document.getElementById('score').textContent=score;
+}
+
+// ── Controls ─────────────────────────────
+function initControls(){
+  // Keyboard
+  window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){doJump();e.preventDefault();}});
+  window.addEventListener('keyup',e=>keys[e.key]=false);
+
+  // Joystick
+  const base=document.getElementById('joystick-base');
+  const knob=document.getElementById('joystick-knob');
+  const R=38;
+  let jid=null;
+
+  base.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    jid=e.changedTouches[0].identifier;
+  },{passive:false});
+
+  window.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier!==jid) continue;
+      const r=base.getBoundingClientRect();
+      let dx=t.clientX−(r.left+r.width/2);
+      let dy=t.clientY−(r.top+r.height/2);
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist>R){dx=dx/dist*R;dy=dy/dist*R;}
+      knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+      joyX=dx/R; joyY=dy/R;
+    }
+  },{passive:true});
+
+  window.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===jid){jid=null;joyX=0;joyY=0;knob.style.transform='translate(-50%,-50%)';}
+    }
+  });
+
+  // Camera drag (right side of screen)
+  let lastTX=0;
+  window.addEventListener('touchstart',e=>{
+    if(e.touches[0].clientX>innerWidth*0.55) lastTX=e.touches[0].clientX;
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(e.touches[0].clientX>innerWidth*0.55){
+      camYaw−=(e.touches[0].clientX−lastTX)*0.006;
+      lastTX=e.touches[0].clientX;
+    }
+  },{passive:true});
+
+  // Mouse orbit
+  let mdrag=false,mlast=0;
+  window.addEventListener('mousedown',e=>{if(e.button===2){mdrag=true;mlast=e.clientX;}});
+  window.addEventListener('mouseup',()=>mdrag=false);
+  window.addEventListener('mousemove',e=>{if(mdrag){camYaw−=(e.clientX−mlast)*0.005;mlast=e.clientX;}});
+  window.addEventListener('contextmenu',e=>e.preventDefault());
+
+  // Buttons
+  document.getElementById('btn-jump').addEventListener('touchstart',e=>{e.preventDefault();doJump();},{passive:false});
+  document.getElementById('chat-inp').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+}
+
+function doJump(){
+  if(!isJumping&&player&&player.position.y<=0.01){
+    velY=7; isJumping=true;
+  }
+}
+
+// ── Socket ───────────────────────────────
+function initSocket(){
+  try{
+    socket=io({transports:['websocket','polling']});
+    socket.on('connect',()=>{
+      socket.emit('join_zone',{zone:'neon_city',username:'Player'+Math.floor(Math.random()*1000)});
+    });
+    socket.on('other_player_move',data=>{
+      let m=others.get(data.id);
+      if(!m){
+        m=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshLambertMaterial({color:0xaaaaaa}));
+        scene.add(m); others.set(data.id,m);
+      }
+      m.position.set(data.x||0,data.y||0,data.z||0);
+    });
+    socket.on('player_left',data=>{
+      const m=others.get(data.id);
+      if(m){scene.remove(m);others.delete(data.id);}
+    });
+    socket.on('chat_message',data=>addChat(data.username,data.message));
+  } catch(e){console.warn('Socket error:',e);}
+}
+
+// ── Chat ─────────────────────────────────
+function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  if(!inp.value.trim()||!socket) return;
+  socket.emit('chat_message',{message:inp.value.trim(),zone:'neon_city',username:'Player'});
+  inp.value='';
+}
+
+function addChat(user,msg){
+  const box=document.getElementById('chat-msgs');
+  const line=document.createElement('div');
+  line.className='chat-line';
+  line.innerHTML=`<span class="chat-user">${user}:</span> ${msg}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+  while(box.children.length>30) box.removeChild(box.firstChild);
+}
+
+// ── Announce ─────────────────────────────
+function showAnnounce(msg){
+  document.getElementById('ann-text').textContent=msg;
+  document.getElementById('announce').style.display='block';
+  setTimeout(()=>document.getElementById('announce').style.display='none',6000);
+}
+
+// ── Start ────────────────────────────────
+boot();
+</script>
 </body>
-</html>
+  </html>
